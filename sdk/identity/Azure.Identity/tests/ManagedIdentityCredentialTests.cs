@@ -2,15 +2,13 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Globalization;
 using System.IO;
-using System.Net.Http;
-using System.Net.Sockets;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Core;
-using Azure.Core.Testing;
+using Azure.Core.TestFramework;
 using Azure.Identity.Tests.Mock;
 using NUnit.Framework;
 
@@ -136,7 +134,7 @@ namespace Azure.Identity.Tests
 
                 var expectedToken = "mock-msi-access-token";
 
-                response.SetContent($"{{ \"access_token\": \"{expectedToken}\", \"expires_on\": \"{DateTimeOffset.UtcNow.ToString()}\" }}");
+                response.SetContent($"{{ \"access_token\": \"{expectedToken}\", \"expires_on\": \"{DateTimeOffset.UtcNow.ToString(CultureInfo.InvariantCulture)}\" }}");
 
                 var mockTransport = new MockTransport(response);
 
@@ -175,7 +173,7 @@ namespace Azure.Identity.Tests
 
                 var expectedToken = "mock-msi-access-token";
 
-                response.SetContent($"{{ \"access_token\": \"{expectedToken}\", \"expires_on\": \"{DateTimeOffset.UtcNow.ToString()}\" }}");
+                response.SetContent($"{{ \"access_token\": \"{expectedToken}\", \"expires_on\": \"{DateTimeOffset.UtcNow.ToString(CultureInfo.InvariantCulture)}\" }}");
 
                 var mockTransport = new MockTransport(response);
 
@@ -306,7 +304,7 @@ namespace Azure.Identity.Tests
 
             var ex = Assert.ThrowsAsync<CredentialUnavailableException>(async () => await credential.GetTokenAsync(new TokenRequestContext(MockScopes.Default)));
 
-            Assert.AreEqual(ManagedIdentityCredential.MsiUnavailableError, ex.Message);
+            Assert.AreEqual(ManagedIdentityClient.MsiUnavailableError, ex.Message);
 
             await Task.CompletedTask;
         }

@@ -12,64 +12,12 @@ namespace Azure.AI.TextAnalytics
     public partial class TextAnalyticsClient
     {
         private const string TextAnalyticsRoute = "/text/analytics/";
-
-        private const string LanguagesRoute = "/languages";
-        private const string EntitiesRoute = "/entities/recognition/general";
-        private const string PiiEntitiesRoute = "/entities/recognition/pii";
-        private const string SentimentRoute = "/sentiment";
-        private const string KeyPhrasesRoute = "/keyPhrases";
         private const string EntityLinkingRoute = "/entities/linking";
 
         private const string ShowStatistics = "showStats";
         private const string ModelVersion = "model-version";
 
-        #region Detect Language
-        private static async Task<Response<DetectLanguageResultCollection>> CreateDetectLanguageResponseAsync(Response response, IDictionary<string, int> idToIndexMap, CancellationToken cancellation)
-        {
-            DetectLanguageResultCollection result = await TextAnalyticsServiceSerializer.DeserializeDetectLanguageResponseAsync(response.ContentStream, idToIndexMap, cancellation).ConfigureAwait(false);
-            return Response.FromValue(result, response);
-        }
-
-        private static Response<DetectLanguageResultCollection> CreateDetectLanguageResponse(Response response, IDictionary<string, int> idToIndexMap) =>
-            Response.FromValue(TextAnalyticsServiceSerializer.DeserializeDetectLanguageResponse(response.ContentStream, idToIndexMap), response);
-
-        #endregion
-
-        #region Recognize Entities
-        private static async Task<Response<RecognizeEntitiesResultCollection>> CreateRecognizeEntitiesResponseAsync(Response response, IDictionary<string, int> idToIndexMap, CancellationToken cancellation)
-        {
-            RecognizeEntitiesResultCollection result = await TextAnalyticsServiceSerializer.DeserializeRecognizeEntitiesResponseAsync(response.ContentStream, idToIndexMap, cancellation).ConfigureAwait(false);
-            return Response.FromValue(result, response);
-        }
-
-        private static Response<RecognizeEntitiesResultCollection> CreateRecognizeEntitiesResponse(Response response, IDictionary<string, int> idToIndexMap) =>
-            Response.FromValue(TextAnalyticsServiceSerializer.DeserializeRecognizeEntitiesResponse(response.ContentStream, idToIndexMap), response);
-
-        #endregion
-
-        #region Analyze Sentiment
-        private static async Task<Response<AnalyzeSentimentResultCollection>> CreateAnalyzeSentimentResponseAsync(Response response, IDictionary<string, int> idToIndexMap, CancellationToken cancellation)
-        {
-            AnalyzeSentimentResultCollection result = await TextAnalyticsServiceSerializer.DeserializeAnalyzeSentimentResponseAsync(response.ContentStream, idToIndexMap, cancellation).ConfigureAwait(false);
-            return Response.FromValue(result, response);
-        }
-
-        private static Response<AnalyzeSentimentResultCollection> CreateAnalyzeSentimentResponse(Response response, IDictionary<string, int> idToIndexMap) =>
-            Response.FromValue(TextAnalyticsServiceSerializer.DeserializeAnalyzeSentimentResponse(response.ContentStream, idToIndexMap), response);
-
-        #endregion  Analyze Sentiment
-
-        #region Extract KeyPhrases
-        private static async Task<Response<ExtractKeyPhrasesResultCollection>> CreateKeyPhraseResponseAsync(Response response, IDictionary<string, int> idToIndexMap, CancellationToken cancellation)
-        {
-            ExtractKeyPhrasesResultCollection result = await TextAnalyticsServiceSerializer.DeserializeKeyPhraseResponseAsync(response.ContentStream, idToIndexMap, cancellation).ConfigureAwait(false);
-            return Response.FromValue(result, response);
-        }
-
-        private static Response<ExtractKeyPhrasesResultCollection> CreateKeyPhraseResponse(Response response, IDictionary<string, int> idToIndexMap) =>
-            Response.FromValue(TextAnalyticsServiceSerializer.DeserializeKeyPhraseResponse(response.ContentStream, idToIndexMap), response);
-
-        #endregion Extract KeyPhrases
+        private const string AuthorizationHeader = "Ocp-Apim-Subscription-Key";
 
         #region Linked Entities
         private static async Task<Response<RecognizeLinkedEntitiesResultCollection>> CreateLinkedEntityResponseAsync(Response response, IDictionary<string, int> idToIndexMap, CancellationToken cancellation)
@@ -80,19 +28,6 @@ namespace Azure.AI.TextAnalytics
 
         private static Response<RecognizeLinkedEntitiesResultCollection> CreateLinkedEntityResponse(Response response, IDictionary<string, int> idToIndexMap) =>
             Response.FromValue(TextAnalyticsServiceSerializer.DeserializeLinkedEntityResponse(response.ContentStream, idToIndexMap), response);
-
-        #endregion
-
-
-        #region Recognize Entities
-        private static async Task<Response<RecognizePiiEntitiesResultCollection>> CreateRecognizePiiEntitiesResponseAsync(Response response, IDictionary<string, int> idToIndexMap, CancellationToken cancellation)
-        {
-            RecognizePiiEntitiesResultCollection result = await TextAnalyticsServiceSerializer.DeserializeRecognizePiiEntitiesResponseAsync(response.ContentStream, idToIndexMap, cancellation).ConfigureAwait(false);
-            return Response.FromValue(result, response);
-        }
-
-        private static Response<RecognizePiiEntitiesResultCollection> CreateRecognizePiiEntitiesResponse(Response response, IDictionary<string, int> idToIndexMap) =>
-            Response.FromValue(TextAnalyticsServiceSerializer.DeserializeRecognizePiiEntitiesResponse(response.ContentStream, idToIndexMap), response);
 
         #endregion
 

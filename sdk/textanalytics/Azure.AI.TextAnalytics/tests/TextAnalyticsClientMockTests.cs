@@ -2,11 +2,13 @@
 // Licensed under the MIT License.
 
 using Azure.Core.Pipeline;
-using Azure.Core.Testing;
+using Azure.Core.TestFramework;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -28,7 +30,7 @@ namespace Azure.AI.TextAnalytics.Tests
                 Transport = transport
             };
 
-            var client = InstrumentClient(new TextAnalyticsClient(new Uri(s_endpoint), new TextAnalyticsApiKeyCredential(s_apiKey), options));
+            var client = InstrumentClient(new TextAnalyticsClient(new Uri(s_endpoint), new AzureKeyCredential(s_apiKey), options));
 
             return client;
         }
@@ -38,16 +40,27 @@ namespace Azure.AI.TextAnalytics.Tests
         {
             var mockResults = new List<RecognizeEntitiesResult>()
             {
-                new RecognizeEntitiesResult("1", new TextDocumentStatistics(), new List<CategorizedEntity>()
-                {
-                    new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0, 1, 0.5),
-                    new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0, 1, 0.5),
-                }),
-                new RecognizeEntitiesResult("2", new TextDocumentStatistics(), new List<CategorizedEntity>()
-                {
-                    new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0, 1, 0.5),
-                    new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0, 1, 0.5),
-                }),
+                TextAnalyticsModelFactory.RecognizeEntitiesResult("1", new TextDocumentStatistics(),
+                    new CategorizedEntityCollection
+                    (
+                        new List<CategorizedEntity>
+                        {
+                            new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0.5),
+                            new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0.5),
+                        },
+                        new List<TextAnalyticsWarning>()
+                    )),
+
+                TextAnalyticsModelFactory.RecognizeEntitiesResult("2", new TextDocumentStatistics(),
+                    new CategorizedEntityCollection
+                    (
+                        new List<CategorizedEntity>
+                        {
+                            new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0.5),
+                            new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0.5),
+                        },
+                        new List<TextAnalyticsWarning>()
+                    )),
             };
             var mockResultCollection = new RecognizeEntitiesResultCollection(mockResults,
                 new TextDocumentBatchStatistics(2, 2, 0, 2),
@@ -59,13 +72,13 @@ namespace Azure.AI.TextAnalytics.Tests
             var mockTransport = new MockTransport(mockResponse);
             TextAnalyticsClient client = CreateTestClient(mockTransport);
 
-            var inputs = new List<TextDocumentInput>()
+            var documents = new List<TextDocumentInput>()
             {
                 new TextDocumentInput("1", "TextDocument1"),
                 new TextDocumentInput("2", "TextDocument2"),
             };
 
-            var response = await client.RecognizeEntitiesBatchAsync(inputs, new TextAnalyticsRequestOptions());
+            var response = await client.RecognizeEntitiesBatchAsync(documents, new TextAnalyticsRequestOptions());
             var resultCollection = response.Value;
 
             Assert.AreEqual("1", resultCollection[0].Id);
@@ -77,18 +90,28 @@ namespace Azure.AI.TextAnalytics.Tests
         {
             var mockResults = new List<RecognizeEntitiesResult>()
             {
-                new RecognizeEntitiesResult("2", new TextDocumentStatistics(), new List<CategorizedEntity>()
-                {
-                    new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0, 1, 0.5),
-                    new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0, 1, 0.5),
-                }),
-                new RecognizeEntitiesResult("3", new TextDocumentStatistics(), new List<CategorizedEntity>()
-                {
-                    new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0, 1, 0.5),
-                    new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0, 1, 0.5),
-                }),
-                new RecognizeEntitiesResult("4", "Document is invalid."),
-                new RecognizeEntitiesResult("5", "Document is invalid."),
+                TextAnalyticsModelFactory.RecognizeEntitiesResult("2", new TextDocumentStatistics(),
+                    new CategorizedEntityCollection
+                    (
+                        new List<CategorizedEntity>
+                        {
+                            new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0.5),
+                            new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0.5),
+                        },
+                        new List<TextAnalyticsWarning>()
+                    )),
+                TextAnalyticsModelFactory.RecognizeEntitiesResult("3", new TextDocumentStatistics(),
+                    new CategorizedEntityCollection
+                    (
+                        new List<CategorizedEntity>
+                        {
+                            new CategorizedEntity("EntityText0", "EntityCategory0", "EntitySubCategory0", 0.5),
+                            new CategorizedEntity("EntityText1", "EntityCategory1", "EntitySubCategory1", 0.5),
+                        },
+                        new List<TextAnalyticsWarning>()
+                    )),
+                new RecognizeEntitiesResult("4", new TextAnalyticsError("InvalidDocument", "Document is invalid.")),
+                new RecognizeEntitiesResult("5", new TextAnalyticsError("InvalidDocument", "Document is invalid.")),
             };
             var mockResultCollection = new RecognizeEntitiesResultCollection(mockResults,
                 new TextDocumentBatchStatistics(2, 2, 2, 2),
@@ -100,7 +123,7 @@ namespace Azure.AI.TextAnalytics.Tests
             var mockTransport = new MockTransport(mockResponse);
             TextAnalyticsClient client = CreateTestClient(mockTransport);
 
-            var inputs = new List<TextDocumentInput>()
+            var documents = new List<TextDocumentInput>()
             {
                 new TextDocumentInput("4", "TextDocument1"),
                 new TextDocumentInput("5", "TextDocument2"),
@@ -108,13 +131,271 @@ namespace Azure.AI.TextAnalytics.Tests
                 new TextDocumentInput("3", "TextDocument4"),
             };
 
-            var response = await client.RecognizeEntitiesBatchAsync(inputs, new TextAnalyticsRequestOptions());
+            var response = await client.RecognizeEntitiesBatchAsync(documents, new TextAnalyticsRequestOptions());
             var resultCollection = response.Value;
 
             Assert.AreEqual("4", resultCollection[0].Id);
             Assert.AreEqual("5", resultCollection[1].Id);
             Assert.AreEqual("2", resultCollection[2].Id);
             Assert.AreEqual("3", resultCollection[3].Id);
+        }
+
+        [Test]
+        public async Task DetectedLanguageNullName()
+        {
+
+            using var Stream = new MemoryStream(Encoding.UTF8.GetBytes(@"
+                {
+                    ""documents"": [
+                    {
+                        ""id"": ""1"",
+                        ""detectedLanguage"": {
+                            ""name"": null,
+                            ""iso6391Name"": ""en"",
+                            ""confidenceScore"": 1
+                            },
+                            ""warnings"": []
+                        }
+                    ],
+                    ""errors"": [],
+                    ""modelVersion"": ""2020 -07-01""
+                }"));
+
+            var mockResponse = new MockResponse(200);
+            mockResponse.ContentStream = Stream;
+
+            var mockTransport = new MockTransport(new[] { mockResponse });
+            var client = CreateTestClient(mockTransport);
+
+            var documents = new List<DetectLanguageInput>
+            {
+                new DetectLanguageInput("1", "Hello world")
+                {
+                     CountryHint = "us",
+                }
+            };
+
+            DetectLanguageResultCollection response = await client.DetectLanguageBatchAsync(documents);
+
+            Assert.IsNull(response.FirstOrDefault().PrimaryLanguage.Name);
+            Assert.IsNotNull(response.FirstOrDefault().PrimaryLanguage.Iso6391Name);
+
+        }
+
+        [Test]
+        public async Task DetectedLanguageNullIso6391Name()
+        {
+
+            using var Stream = new MemoryStream(Encoding.UTF8.GetBytes(@"
+                {
+                    ""documents"": [
+                    {
+                        ""id"": ""1"",
+                        ""detectedLanguage"": {
+                            ""name"": ""English"",
+                            ""iso6391Name"": null,
+                            ""confidenceScore"": 1
+                            },
+                            ""warnings"": []
+                        }
+                    ],
+                    ""errors"": [],
+                    ""modelVersion"": ""2020 -07-01""
+                }"));
+
+            var mockResponse = new MockResponse(200);
+            mockResponse.ContentStream = Stream;
+
+            var mockTransport = new MockTransport(new[] { mockResponse });
+            var client = CreateTestClient(mockTransport);
+
+            var documents = new List<DetectLanguageInput>
+            {
+                new DetectLanguageInput("1", "Hello world")
+                {
+                     CountryHint = "us",
+                }
+            };
+
+            DetectLanguageResultCollection response = await client.DetectLanguageBatchAsync(documents);
+
+            Assert.IsNotNull(response.FirstOrDefault().PrimaryLanguage.Name);
+            Assert.IsNull(response.FirstOrDefault().PrimaryLanguage.Iso6391Name);
+
+        }
+
+        // We shipped TA 5.0.0 Text == string.Empty if the service returned a null value for Text.
+        // We want to verify behavior is the same after code auto generated.
+        [Test]
+        public async Task AnalyzeSentimentNullText()
+        {
+
+            using var Stream = new MemoryStream(Encoding.UTF8.GetBytes(@"
+                {
+                    ""documents"": [
+                        {
+                            ""id"": ""1"",
+                            ""sentiment"": ""neutral"",
+                            ""confidenceScores"": {
+                                ""positive"": 0.1,
+                                ""neutral"": 0.88,
+                                ""negative"": 0.02
+                            },
+                            ""sentences"": [
+                                {
+                                ""sentiment"": ""neutral"",
+                                    ""confidenceScores"": {
+                                    ""positive"": 0.1,
+                                        ""neutral"": 0.88,
+                                        ""negative"": 0.02
+                                    },
+                                    ""offset"": 0,
+                                    ""length"": 18,
+                                    ""text"": null
+                                }
+                            ],
+                            ""warnings"": []
+                        }
+                    ],
+                    ""errors"": [],
+                    ""modelVersion"": ""2020 -04-01""
+                }"));
+
+            var mockResponse = new MockResponse(200);
+            mockResponse.ContentStream = Stream;
+
+            var mockTransport = new MockTransport(new[] { mockResponse });
+            var client = CreateTestClient(mockTransport);
+
+            DocumentSentiment response = await client.AnalyzeSentimentAsync("today is a hot day");
+
+            Assert.AreEqual(string.Empty, response.Sentences.FirstOrDefault().Text);
+        }
+
+        [Test]
+        public void AnalyzeSentimentNotSupportedSentenceSentiment()
+        {
+
+            using var Stream = new MemoryStream(Encoding.UTF8.GetBytes(@"
+                {
+                    ""documents"": [
+                        {
+                            ""id"": ""1"",
+                            ""sentiment"": ""neutral"",
+                            ""confidenceScores"": {
+                                ""positive"": 0.1,
+                                ""neutral"": 0.88,
+                                ""negative"": 0.02
+                            },
+                            ""sentences"": [
+                                {
+                                ""sentiment"": ""confusion"",
+                                    ""confidenceScores"": {
+                                    ""positive"": 0.1,
+                                        ""neutral"": 0.88,
+                                        ""negative"": 0.02
+                                    },
+                                    ""offset"": 0,
+                                    ""length"": 18,
+                                    ""text"": ""today is a hot day""
+                                }
+                            ],
+                            ""warnings"": []
+                        }
+                    ],
+                    ""errors"": [],
+                    ""modelVersion"": ""2020 -04-01""
+                }"));
+
+            var mockResponse = new MockResponse(200);
+            mockResponse.ContentStream = Stream;
+
+            var mockTransport = new MockTransport(new[] { mockResponse });
+            var client = CreateTestClient(mockTransport);
+
+            Assert.ThrowsAsync<ArgumentException>(async () => await client.AnalyzeSentimentAsync("today is a hot day"));
+        }
+
+        [Test]
+        public async Task AnalyzeSentimentMixedSentenceSentiment()
+        {
+
+            using var Stream = new MemoryStream(Encoding.UTF8.GetBytes(@"
+                {
+                    ""documents"": [
+                        {
+                            ""id"": ""1"",
+                            ""sentiment"": ""neutral"",
+                            ""confidenceScores"": {
+                                ""positive"": 0.1,
+                                ""neutral"": 0.88,
+                                ""negative"": 0.02
+                            },
+                            ""sentences"": [
+                                {
+                                ""sentiment"": ""mixed"",
+                                    ""confidenceScores"": {
+                                    ""positive"": 0.1,
+                                        ""neutral"": 0.88,
+                                        ""negative"": 0.02
+                                    },
+                                    ""offset"": 0,
+                                    ""length"": 18,
+                                    ""text"": ""today is a hot day""
+                                }
+                            ],
+                            ""warnings"": []
+                        }
+                    ],
+                    ""errors"": [],
+                    ""modelVersion"": ""2020 -04-01""
+                }"));
+
+            var mockResponse = new MockResponse(200);
+            mockResponse.ContentStream = Stream;
+
+            var mockTransport = new MockTransport(new[] { mockResponse });
+            var client = CreateTestClient(mockTransport);
+
+            DocumentSentiment response = await client.AnalyzeSentimentAsync("today is a hot day");
+
+            Assert.AreEqual(TextSentiment.Mixed, response.Sentences.FirstOrDefault().Sentiment);
+        }
+
+        [Test]
+        public async Task recognizeEntitiesNullCategory()
+        {
+
+            using var Stream = new MemoryStream(Encoding.UTF8.GetBytes(@"
+                {
+                    ""documents"": [
+                        {
+                            ""id"": ""0"",
+                            ""entities"": [
+                                {
+                                ""text"": ""Microsoft"",
+                                    ""category"": null,
+                                    ""offset"": 0,
+                                    ""length"": 9,
+                                    ""confidenceScore"": 0.81
+                                }
+                            ],
+                            ""warnings"": []
+                        }
+                    ],
+                    ""errors"": [],
+                    ""modelVersion"": ""2020 -04-01""
+                }"));
+
+            var mockResponse = new MockResponse(200);
+            mockResponse.ContentStream = Stream;
+
+            var mockTransport = new MockTransport(new[] { mockResponse });
+            var client = CreateTestClient(mockTransport);
+
+            CategorizedEntityCollection response = await client.RecognizeEntitiesAsync("Microsoft was founded");
+
+            Assert.IsNotNull(response.FirstOrDefault().Category);
         }
 
         private void SerializeRecognizeEntitiesResultCollection(ref Utf8JsonWriter json, RecognizeEntitiesResultCollection resultCollection)
@@ -125,7 +406,7 @@ namespace Azure.AI.TextAnalytics.Tests
             {
                 foreach (var result in resultCollection)
                 {
-                    if (result.Entities.Count > 0)
+                    if (!result.HasError)
                     {
                         json.WriteStartObject();
                         json.WriteString("id", result.Id);
@@ -134,11 +415,18 @@ namespace Azure.AI.TextAnalytics.Tests
                         {
                             json.WriteStartObject();
                             json.WriteString("text", entity.Text);
-                            json.WriteString("type", JsonSerializer.Serialize(entity.Category));
-                            json.WriteString("subtype", JsonSerializer.Serialize(entity.SubCategory));
-                            json.WriteNumber("offset", entity.Offset);
-                            json.WriteNumber("length", entity.Length);
-                            json.WriteNumber("score", entity.Score);
+                            json.WriteString("category", JsonSerializer.Serialize(entity.Category));
+                            json.WriteString("subcategory", JsonSerializer.Serialize(entity.SubCategory));
+                            json.WriteNumber("confidenceScore", entity.ConfidenceScore);
+                            json.WriteEndObject();
+                        }
+                        json.WriteEndArray();
+                        json.WriteStartArray("warnings");
+                        foreach (var warning in result.Entities.Warnings)
+                        {
+                            json.WriteStartObject();
+                            json.WriteString("code", warning.WarningCode.ToString());
+                            json.WriteString("message", warning.Message);
                             json.WriteEndObject();
                         }
                         json.WriteEndArray();
@@ -149,17 +437,18 @@ namespace Azure.AI.TextAnalytics.Tests
             json.WriteEndArray();
 
             json.WriteStartArray("errors");
-            if (resultCollection.FirstOrDefault(r => r.ErrorMessage != default) != default)
+            if (resultCollection.FirstOrDefault(r => r.HasError) != default)
             {
                 foreach (var result in resultCollection)
                 {
-                    if (result.ErrorMessage != null)
+                    if (result.HasError)
                     {
                         json.WriteStartObject();
                         json.WriteString("id", result.Id);
                         json.WriteStartObject("error");
-                        json.WriteStartObject("innerError");
-                        json.WriteString("message", result.ErrorMessage);
+                        json.WriteStartObject("innererror");
+                        json.WriteString("code", result.Error.ErrorCode.ToString());
+                        json.WriteString("message", result.Error.Message);
                         json.WriteEndObject();
                         json.WriteEndObject();
                         json.WriteEndObject();
